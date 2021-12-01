@@ -125,8 +125,7 @@ macro_rules! register {
             }
 
             #[inline]
-            fn
-             run(mut $input: <$input_ty as $crate::PuzzleInput>::Out) -> (Self::Output, Self::Output) {
+            fn run(mut $input: <$input_ty as $crate::PuzzleInput>::Out) -> (Self::Output, Self::Output) {
                 $runner
             }
         }

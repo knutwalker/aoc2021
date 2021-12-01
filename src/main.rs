@@ -1,4 +1,5 @@
 #![feature(array_windows)]
+#![allow(unused)]
 
 #[macro_use]
 extern crate aoc2021;
