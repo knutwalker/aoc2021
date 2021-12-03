@@ -1,5 +1,6 @@
 #![feature(array_windows)]
-#![allow(unused)]
+#![feature(iter_partition_in_place)]
+#![allow(unused_variables)]
 
 #[macro_use]
 extern crate aoc2021;
