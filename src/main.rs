@@ -1,4 +1,6 @@
 #![feature(array_windows)]
+#![feature(control_flow_enum)]
+#![feature(drain_filter)]
 #![feature(iter_partition_in_place)]
 #![allow(unused_variables)]
 
