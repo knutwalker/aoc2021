@@ -1,8 +1,21 @@
-#![feature(array_windows)]
-#![feature(control_flow_enum)]
-#![feature(drain_filter)]
-#![feature(iter_partition_in_place)]
-#![allow(unused_variables)]
+#![feature(
+    array_windows,
+    control_flow_enum,
+    drain_filter,
+    iter_partition_in_place
+)]
+#![warn(
+    clippy::all,
+    clippy::pedantic,
+    clippy::nursery,
+    clippy::cargo,
+    rust_2018_idioms
+)]
+#![allow(
+    clippy::missing_const_for_fn,
+    clippy::redundant_pub_crate,
+    unused_variables
+)]
 
 #[macro_use]
 extern crate aoc2021;

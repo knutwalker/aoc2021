@@ -1,4 +1,5 @@
 use parse_display::FromStr;
+use std::convert::Infallible;
 
 register!(
     "input/day2.txt";
@@ -7,12 +8,24 @@ register!(
     }
 );
 
-#[derive(Clone, Copy, Debug, FromStr)]
-#[display(style = "lowercase")]
+#[allow(clippy::use_self)]
+#[derive(Clone, Copy, Debug)]
 pub enum Direction {
     Forward,
     Down,
     Up,
+}
+
+impl std::str::FromStr for Direction {
+    type Err = Infallible;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
+            "forward" => Self::Forward,
+            "down" => Self::Down,
+            "up" => Self::Up,
+            _ => unreachable!(),
+        })
+    }
 }
 
 #[derive(Clone, Copy, Debug, FromStr)]
@@ -37,7 +50,7 @@ fn part2(items: &[Command]) -> i64 {
         match direction {
             Direction::Forward => {
                 horizontal += unit;
-                depth += aim * unit
+                depth += aim * unit;
             }
             Direction::Down => aim += unit,
             Direction::Up => aim -= unit,

@@ -41,13 +41,16 @@ impl From<String> for Bits {
     }
 }
 
-impl<'a> From<&'a Bits> for u64 {
-    fn from(bits: &'a Bits) -> Self {
+impl<'a> TryFrom<&'a Bits> for u64 {
+    type Error = std::num::ParseIntError;
+
+    fn try_from(bits: &'a Bits) -> Result<Self, Self::Error> {
         let bits = bits
             .iter()
             .map(|&b| char::from(b as u8))
             .collect::<String>();
-        u64::from_str_radix(&bits, 2).unwrap()
+
+        Self::from_str_radix(&bits, 2)
     }
 }
 
@@ -69,7 +72,7 @@ fn part1(items: &[Bits]) -> u64 {
 
     let significant_bits = bits.len();
 
-    let gamma = u64::from(&bits);
+    let gamma = u64::try_from(&bits).unwrap();
     let epsilon = (!gamma) & ((1 << significant_bits) - 1);
 
     gamma * epsilon
@@ -85,7 +88,7 @@ fn part2(items: &mut [Bits]) -> u64 {
 fn find_rating_2(mut items: &mut [Bits], select: impl Fn(isize) -> bool) -> u64 {
     for pos in 0.. {
         if let [result] = items {
-            return u64::from(&*result);
+            return u64::try_from(&*result).unwrap();
         }
 
         let count = items
@@ -98,10 +101,7 @@ fn find_rating_2(mut items: &mut [Bits], select: impl Fn(isize) -> bool) -> u64 
 
         let (ones, zeroes) = items.split_at_mut(number_of_ones);
 
-        items = match select(count) {
-            true => ones,
-            false => zeroes,
-        };
+        items = if select(count) { ones } else { zeroes };
     }
 
     unreachable!()

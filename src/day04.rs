@@ -4,7 +4,7 @@ use std::ops::ControlFlow;
 register!(
     "input/day4.txt";
     run(input: chunk String) -> u32 {
-        let (draws, mut boards) = parse(input);
+        let (draws, mut boards) = parse(&input);
         (part1(&draws, &mut boards), part2(&draws, &mut boards))
     }
 );
@@ -25,7 +25,7 @@ fn part2(draws: &[u8], boards: &mut Boards) -> u32 {
         .expect("no solution")
 }
 
-fn parse(input: Vec<Vec<String>>) -> (Vec<u8>, Boards) {
+fn parse(input: &[Vec<String>]) -> (Vec<u8>, Boards) {
     let (draws, boards) = input.split_first().unwrap();
     let draws = draws
         .iter()
@@ -93,7 +93,7 @@ impl Board {
     fn score(&self) -> u32 {
         self.iter()
             .flat_map(|row| row.iter())
-            .filter_map(|(num, drawn)| (!*drawn).then(|| *num as u32))
+            .filter_map(|(num, drawn)| (!*drawn).then(|| u32::from(*num)))
             .sum::<u32>()
     }
 }
