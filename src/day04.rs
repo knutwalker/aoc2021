@@ -1,123 +1,112 @@
 use derive_more::{Deref, DerefMut};
-use std::ops::ControlFlow;
 
 register!(
     "input/day4.txt";
     run(input: chunk String) -> u32 {
-        let (draws, mut boards) = parse(&input);
-        (part1(&draws, &mut boards), part2(&draws, &mut boards))
+        let (draws, boards) = parse(&input);
+        (part1(&draws, boards.clone()), part2(&draws, boards))
     }
 );
 
-fn part1(draws: &[u8], boards: &mut Boards) -> u32 {
+fn part1(draws: &[u8], boards: Vec<Board>) -> u32 {
     draws
         .iter()
-        .try_for_each(|num| boards.draw(*num))
-        .break_value()
-        .expect("no solution")
+        .scan(boards, |b, &n| Some(draw(b, n)))
+        .flatten()
+        .next()
+        .unwrap()
 }
 
-fn part2(draws: &[u8], boards: &mut Boards) -> u32 {
+fn part2(draws: &[u8], boards: Vec<Board>) -> u32 {
     draws
         .iter()
-        .try_for_each(|num| boards.draw2(*num))
-        .break_value()
-        .expect("no solution")
+        .scan(boards, |b, &n| Some(draw(b, n)))
+        .flatten()
+        .last()
+        .unwrap()
 }
 
-fn parse(input: &[Vec<String>]) -> (Vec<u8>, Boards) {
-    let (draws, boards) = input.split_first().unwrap();
-    let draws = draws
-        .iter()
-        .flat_map(|d| d.split(','))
-        .map(str::parse::<u8>)
-        .map(Result::unwrap)
-        .collect();
-
-    let boards = Boards(
-        boards
-            .iter()
-            .map(|lines| {
-                Board(
-                    lines
-                        .iter()
-                        .map(|line| {
-                            line.split_ascii_whitespace()
-                                .map(|s| (s.parse().unwrap(), false))
-                                .collect::<Vec<_>>()
-                                .try_into()
-                                .unwrap()
-                        })
-                        .collect::<Vec<_>>()
-                        .try_into()
-                        .unwrap(),
-                )
-            })
-            .collect(),
-    );
-
-    (draws, boards)
+fn draw(boards: &mut Vec<Board>, number: u8) -> Vec<u32> {
+    boards
+        .drain_filter(move |board| board.draw(number))
+        .map(move |b| b.score() * u32::from(number))
+        .collect()
 }
 
 const BOARD_SIZE: usize = 5;
 
-#[derive(Deref, DerefMut)]
-struct Board([[(u8, bool); BOARD_SIZE]; BOARD_SIZE]);
+#[derive(Clone, Copy)]
+struct Board([u8; BOARD_SIZE * BOARD_SIZE], u32);
 
 impl Board {
     fn draw(&mut self, number: u8) -> bool {
-        for row in self.iter_mut() {
-            for (num, drawn) in row {
-                if *num == number {
-                    *drawn = true;
-                }
-            }
-        }
-        self.has_won()
-    }
-
-    fn has_won(&self) -> bool {
-        if self.iter().any(|row| row.iter().all(|(_, drawn)| *drawn)) {
-            return true;
-        }
-
-        for c in 0..BOARD_SIZE {
-            if self.iter().all(|row| row[c].1) {
-                return true;
-            }
-        }
-
-        false
+        let Some(pos) = self.0.iter().position(|&n| n == number) else { return false };
+        self.0[pos] = 0;
+        self.1 |= 1 << pos;
+        winners().iter().any(|&w| (self.1 & w) == w)
     }
 
     fn score(&self) -> u32 {
-        self.iter()
-            .flat_map(|row| row.iter())
-            .filter_map(|(num, drawn)| (!*drawn).then(|| u32::from(*num)))
-            .sum::<u32>()
+        self.0.iter().copied().map(u32::from).sum()
     }
 }
 
-#[derive(Deref, DerefMut)]
+#[derive(Clone, Deref, DerefMut)]
 struct Boards(Vec<Board>);
 
-impl Boards {
-    fn draw(&mut self, number: u8) -> ControlFlow<u32> {
-        self.iter_mut()
-            .find_map(|board| {
-                board
-                    .draw(number)
-                    .then(|| ControlFlow::Break(board.score() * u32::from(number)))
-            })
-            .unwrap_or(ControlFlow::CONTINUE)
+impl Boards {}
+
+#[allow(clippy::unusual_byte_groupings)]
+fn winners() -> &'static [u32] {
+    const fn generate() -> [u32; 10] {
+        let mut result = [0; 10];
+        let mut pos = 0;
+
+        let mut row = 0b0000000_00000_00000_00000_00000_11111_u32;
+        while pos < 5 {
+            result[pos] = row;
+            row <<= 5;
+            pos += 1;
+        }
+
+        let mut col = 0b0000000_00001_00001_00001_00001_00001_u32;
+        while pos < 10 {
+            result[pos] = col;
+            col <<= 1;
+            pos += 1;
+        }
+
+        result
     }
 
-    fn draw2(&mut self, number: u8) -> ControlFlow<u32> {
-        let removed = self.drain_filter(|board| board.draw(number)).last();
-        self.is_empty()
-            .then(|| ControlFlow::Break(removed.unwrap().score() * u32::from(number)))
-            .unwrap_or(ControlFlow::CONTINUE)
-    }
+    static WINNERS: [u32; 10] = generate();
+    WINNERS.as_ref()
+}
+
+fn parse(input: &[Vec<String>]) -> (Vec<u8>, Vec<Board>) {
+    let (draws, boards) = input.split_first().unwrap();
+    let draws = draws
+        .iter()
+        .flat_map(|d| d.split(','))
+        .flat_map(str::parse::<u8>)
+        .collect();
+
+    let boards = boards
+        .iter()
+        .map(|lines| {
+            Board(
+                lines
+                    .iter()
+                    .flat_map(|line| line.split_ascii_whitespace().flat_map(str::parse::<u8>))
+                    .collect::<Vec<_>>()
+                    .try_into()
+                    .unwrap(),
+                0,
+            )
+        })
+        .collect();
+
+    (draws, boards)
 }
 
 #[cfg(test)]
