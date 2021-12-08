@@ -1,8 +1,9 @@
+use std::{convert::Infallible, str::FromStr};
+
 register!(
     "input/day7.txt";
-    run(input: String) -> u32 {
-        let numbers = input[0].split(',').flat_map(str::parse::<i32>).collect::<Vec<_>>();
-        (part1(&numbers), part2(&numbers))
+    (input: parse Ferrises) -> u32 {
+        part1(&input[0].0), part2(&input[0].0)
     }
 );
 
@@ -26,6 +27,16 @@ fn solve(items: &[i32], cost: impl Fn(u32) -> u32) -> u32 {
         })
         .min()
         .unwrap()
+}
+
+pub struct Ferrises(Vec<i32>);
+
+impl FromStr for Ferrises {
+    type Err = Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(s.split(',').flat_map(str::parse::<i32>).collect()))
+    }
 }
 
 #[cfg(test)]

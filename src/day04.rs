@@ -1,10 +1,10 @@
+use aoc2021::{lines, PuzzleInput};
 use derive_more::{Deref, DerefMut};
 
 register!(
     "input/day4.txt";
-    run(input: chunk String) -> u32 {
-        let (draws, boards) = parse(&input);
-        (part1(&draws, boards.clone()), part2(&draws, boards))
+    (input: verbatim Bingo) -> u32 {
+        part1(&input.draws, input.boards.clone()), part2(&input.draws, input.boards)
     }
 );
 
@@ -83,30 +83,35 @@ fn winners() -> &'static [u32] {
     WINNERS.as_ref()
 }
 
-fn parse(input: &[Vec<String>]) -> (Vec<u8>, Vec<Board>) {
-    let (draws, boards) = input.split_first().unwrap();
-    let draws = draws
-        .iter()
-        .flat_map(|d| d.split(','))
-        .flat_map(str::parse::<u8>)
-        .collect();
+pub struct Bingo {
+    draws: Vec<u8>,
+    boards: Vec<Board>,
+}
 
-    let boards = boards
-        .iter()
-        .map(|lines| {
-            Board(
-                lines
-                    .iter()
-                    .flat_map(|line| line.split_ascii_whitespace().flat_map(str::parse::<u8>))
+impl PuzzleInput for Bingo {
+    type Out = Bingo;
+
+    fn from_input(input: &str) -> Self::Out {
+        let mut blocks = input.split("\n\n");
+
+        let draws = blocks.next().unwrap();
+        let draws = lines(draws)
+            .flat_map(|s| s.split(','))
+            .flat_map(str::parse::<u8>)
+            .collect();
+
+        let boards = blocks
+            .map(|block| {
+                lines(block)
+                    .flat_map(str::split_ascii_whitespace)
+                    .flat_map(str::parse::<u8>)
                     .collect::<Vec<_>>()
-                    .try_into()
-                    .unwrap(),
-                0,
-            )
-        })
-        .collect();
+            })
+            .map(|numbers| Board(numbers.try_into().unwrap(), 0))
+            .collect();
 
-    (draws, boards)
+        Self { draws, boards }
+    }
 }
 
 #[cfg(test)]

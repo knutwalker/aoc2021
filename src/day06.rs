@@ -1,8 +1,9 @@
+use std::{convert::Infallible, str::FromStr};
+
 register!(
     "input/day6.txt";
-    run(input: String) -> usize {
-        let numbers = input[0].split(',').flat_map(str::parse::<usize>).collect::<Vec<_>>();
-        (part1(&numbers), part2(&numbers))
+    (input: parse Fishes) -> usize {
+        part1(&input[0].0), part2(&input[0].0)
     }
 );
 
@@ -27,6 +28,16 @@ fn model_fishes(initial: &[usize], days: usize) -> usize {
     }
 
     fishes.into_iter().sum()
+}
+
+pub struct Fishes(Vec<usize>);
+
+impl FromStr for Fishes {
+    type Err = Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(s.split(',').flat_map(str::parse::<usize>).collect()))
+    }
 }
 
 #[cfg(test)]

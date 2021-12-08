@@ -32,12 +32,7 @@ where
     type Out = Vec<T>;
 
     fn from_input(input: &str) -> Self::Out {
-        input
-            .lines()
-            .map(str::trim)
-            .filter(|l| !l.is_empty())
-            .map(|l| T::from_str(l).unwrap())
-            .collect()
+        lines(input).map(|l| T::from_str(l).unwrap()).collect()
     }
 }
 
@@ -50,13 +45,12 @@ where
     type Out = Vec<T>;
 
     fn from_input(input: &str) -> Self::Out {
-        input
-            .lines()
-            .map(str::trim)
-            .filter(|l| !l.is_empty())
-            .map(|l| T::from(String::from(l)))
-            .collect()
+        lines(input).map(|l| T::from(String::from(l))).collect()
     }
+}
+
+pub fn lines(s: &str) -> impl Iterator<Item = &str> + '_ {
+    s.lines().map(str::trim).filter(|line| !line.is_empty())
 }
 
 pub struct PuzzleSolution<T> {
