@@ -3,8 +3,8 @@ use std::{collections::HashMap, iter::repeat};
 
 register!(
     "input/day5.txt";
-    run(input: parse VentLine) -> usize {
-        (part1(&input), part2(&input))
+    (input: parse VentLine) -> usize {
+        part1(&input), part2(&input)
     }
 );
 

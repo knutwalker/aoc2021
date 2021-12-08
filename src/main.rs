@@ -55,7 +55,7 @@ fn main() {
         .skip(1)
         .filter_map(|s| s.parse::<u8>().ok())
     {
-        let (res1, res2) = match day {
+        let (res1, res2, times) = match day {
             1 => day01::Solver::solve(),
             2 => day02::Solver::solve(),
             3 => day03::Solver::solve(),
@@ -84,7 +84,25 @@ fn main() {
             x => unimplemented!("Day {} is not yet implemented", x),
         };
 
-        println!("Day {:02} Part 1:\t{}", day, res1);
-        println!("Day {:02} Part 2:\t{}", day, res2);
+        match times {
+            Some((time1, time2)) => {
+                println!(
+                    "Day {:02} Part 1:\t{} (took {})",
+                    day,
+                    res1,
+                    humantime::format_duration(time1)
+                );
+                println!(
+                    "Day {:02} Part 2:\t{} (took {})",
+                    day,
+                    res2,
+                    humantime::format_duration(time2)
+                );
+            }
+            None => {
+                println!("Day {:02} Part 1:\t{}", day, res1);
+                println!("Day {:02} Part 2:\t{}", day, res2);
+            }
+        }
     }
 }

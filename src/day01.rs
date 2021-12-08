@@ -1,7 +1,7 @@
 register!(
     "input/day1.txt";
-    run(input: parse u64) -> usize {
-        (part1(&input), part2(&input))
+    (input: parse u64) -> usize {
+        part1(&input), part2(&input)
     }
 );
 

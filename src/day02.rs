@@ -3,8 +3,8 @@ use std::convert::Infallible;
 
 register!(
     "input/day2.txt";
-    run(input: parse Command) -> i64 {
-        (part1(&input), part2(&input))
+    (input: parse Command) -> i64 {
+        part1(&input), part2(&input)
     }
 );
 

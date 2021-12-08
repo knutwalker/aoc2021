@@ -9,8 +9,9 @@ use std::{
 
 register!(
     "input/day8.txt";
-    run(input: parse Input) -> usize {
-        (part1(&input), part2(&input))
+    (input: parse Input) -> usize {
+        part1(&input),
+        part2(&mut input)
     }
 );
 
