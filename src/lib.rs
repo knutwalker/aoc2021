@@ -59,6 +59,12 @@ where
     }
 }
 
+pub struct PuzzleSolution<T> {
+    pub part1: T,
+    pub part2: T,
+    pub timings: Option<(Duration, Duration)>,
+}
+
 pub trait Solution {
     type Input: PuzzleInput;
     type Output;
@@ -66,12 +72,15 @@ pub trait Solution {
     fn puzzle_input() -> &'static str;
 
     fn run(input: <Self::Input as PuzzleInput>::Out) -> (Self::Output, Self::Output) {
-        Self::timed_run(input).0
+        let PuzzleSolution {
+            part1,
+            part2,
+            timings: _,
+        } = Self::timed_run(input);
+        (part1, part2)
     }
 
-    fn timed_run(
-        input: <Self::Input as PuzzleInput>::Out,
-    ) -> ((Self::Output, Self::Output), Option<(Duration, Duration)>);
+    fn timed_run(input: <Self::Input as PuzzleInput>::Out) -> PuzzleSolution<Self::Output>;
 
     #[inline]
     fn parse_input(input: &str) -> <Self::Input as PuzzleInput>::Out {
@@ -91,23 +100,27 @@ pub trait Solution {
     }
 
     #[inline]
-    fn timed_run_on_input() -> ((Self::Output, Self::Output), Option<(Duration, Duration)>) {
+    fn timed_run_on_input() -> PuzzleSolution<Self::Output> {
         let input = Self::puzzle_input();
         let input = Self::parse_input(input);
         Self::timed_run(input)
     }
 
     #[inline]
-    fn solve() -> (
-        Box<dyn Display>,
-        Box<dyn Display>,
-        Option<(Duration, Duration)>,
-    )
+    fn solve() -> PuzzleSolution<Box<dyn Display>>
     where
         Self::Output: Display + 'static,
     {
-        let ((res1, res2), times) = Self::timed_run_on_input();
-        (Box::new(res1), Box::new(res2), times)
+        let PuzzleSolution {
+            part1,
+            part2,
+            timings,
+        } = Self::timed_run_on_input();
+        PuzzleSolution {
+            part1: Box::new(part1),
+            part2: Box::new(part2),
+            timings,
+        }
     }
 }
 
@@ -142,8 +155,11 @@ macro_rules! register {
             }
 
             #[inline]
-            fn timed_run(mut $input: <$input_ty as $crate::PuzzleInput>::Out) -> ((Self::Output, Self::Output), ::std::option::Option<(::std::time::Duration, ::std::time::Duration)>) {
-                ($runner, None)
+            fn timed_run(mut $input: <$input_ty as $crate::PuzzleInput>::Out) -> $crate::PuzzleSolution<Self::Output> {
+                let (part1, part2) = $runner;
+                $crate::PuzzleSolution {
+                    part1, part2, timings: None
+                }
             }
         }
     };
@@ -176,7 +192,7 @@ macro_rules! register {
             }
 
             #[inline]
-            fn timed_run(mut $input: <$input_ty as $crate::PuzzleInput>::Out) -> ((Self::Output, Self::Output), ::std::option::Option<(::std::time::Duration, ::std::time::Duration)>) {
+            fn timed_run(mut $input: <$input_ty as $crate::PuzzleInput>::Out) -> $crate::PuzzleSolution<Self::Output> {
                 let start = ::std::time::Instant::now();
                 let part1 = $part1;
                 let part1_time = start.elapsed();
@@ -184,7 +200,9 @@ macro_rules! register {
                 let part2 = $part2;
                 let part2_time = start.elapsed();
 
-                ((part1, part2), Some((part1_time, part2_time)))
+                $crate::PuzzleSolution {
+                    part1, part2, timings: Some((part1_time, part2_time))
+                }
             }
         }
     };

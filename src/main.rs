@@ -22,7 +22,7 @@
 #[macro_use]
 extern crate aoc2021;
 
-use aoc2021::Solution;
+use aoc2021::{PuzzleSolution, Solution};
 
 mod day01;
 mod day02;
@@ -55,7 +55,11 @@ fn main() {
         .skip(1)
         .filter_map(|s| s.parse::<u8>().ok())
     {
-        let (res1, res2, times) = match day {
+        let PuzzleSolution {
+            part1,
+            part2,
+            timings,
+        } = match day {
             1 => day01::Solver::solve(),
             2 => day02::Solver::solve(),
             3 => day03::Solver::solve(),
@@ -84,25 +88,22 @@ fn main() {
             x => unimplemented!("Day {} is not yet implemented", x),
         };
 
-        match times {
-            Some((time1, time2)) => {
-                println!(
-                    "Day {:02} Part 1:\t{} (took {})",
-                    day,
-                    res1,
-                    humantime::format_duration(time1)
-                );
-                println!(
-                    "Day {:02} Part 2:\t{} (took {})",
-                    day,
-                    res2,
-                    humantime::format_duration(time2)
-                );
-            }
-            None => {
-                println!("Day {:02} Part 1:\t{}", day, res1);
-                println!("Day {:02} Part 2:\t{}", day, res2);
-            }
+        if let Some((time1, time2)) = timings {
+            println!(
+                "Day {:02} Part 1:\t{} (took {})",
+                day,
+                part1,
+                humantime::format_duration(time1)
+            );
+            println!(
+                "Day {:02} Part 2:\t{} (took {})",
+                day,
+                part2,
+                humantime::format_duration(time2)
+            );
+        } else {
+            println!("Day {:02} Part 1:\t{}", day, part1);
+            println!("Day {:02} Part 2:\t{}", day, part2);
         }
     }
 }
