@@ -1,11 +1,5 @@
-use const_combinations::IterExt;
-use derive_more::Deref;
 use parse_display::FromStr;
-use std::{
-    convert::Infallible,
-    ops::{Index, IndexMut},
-    str::FromStr,
-};
+use std::{convert::Infallible, str::FromStr};
 
 register!(
     "input/day8.txt";
@@ -18,190 +12,96 @@ register!(
 fn part1(items: &[Input]) -> usize {
     items
         .iter()
-        .flat_map(|Input(_, output_digits)| output_digits.0)
-        .flat_map(|d| d.guess())
+        .flat_map(|Input { test: _, output }| output.0.iter().copied())
+        .filter(|d| matches!(d.segments_turned_on(), 2 | 3 | 4 | 7))
         .count()
 }
 
-fn part2(items: &[Input]) -> usize {
+fn part2(items: &mut [Input]) -> usize {
     items
-        .iter()
-        .flat_map(|&Input(test, output)| {
-            (b'a'..=b'g').permutations().map(Guess).find_map(|guess| {
-                test.iter().all(|d| d.guess_for(guess).is_some()).then(|| {
-                    output
-                        .iter()
-                        .flat_map(|d| d.guess_for(guess))
-                        .fold(0_usize, |n, d| n * 10 + usize::from(d))
-                })
-            })
+        .iter_mut()
+        .map(|Input { test, output }| {
+            let mut num = [Digit(0); 10];
+
+            // identifiable by number of segments alone
+            num[1] = test.pop(|n| n.has_segments(2));
+            num[4] = test.pop(|n| n.has_segments(4));
+            num[7] = test.pop(|n| n.has_segments(3));
+            num[8] = test.pop(|n| n.has_segments(7));
+
+            // 0, 6, and 9 have 6 segments
+            // 9 is the only one to cover all segments from 4
+            num[9] = test.pop(|n| n.has_segments(6) && n.contains_segments_from(num[4]));
+            // 0 is now the only one to cover 7
+            num[0] = test.pop(|n| n.has_segments(6) && n.contains_segments_from(num[7]));
+            // 6 is now identifiable by segment count alone
+            num[6] = test.pop(|n| n.has_segments(6));
+
+            // 2, 3, 5 are left and all have 5 segments
+            // 3 is the only one to cover all segments from 7
+            num[3] = test.pop(|n| n.contains_segments_from(num[7]));
+            // 5 is the only one covered by 6
+            num[5] = test.pop(|n| num[6].contains_segments_from(n));
+            // 2 is remaining
+            num[2] = test.pop(|_| true);
+
+            output.decode(&num)
         })
         .sum()
 }
 
-#[derive(Clone, Copy, Debug, FromStr)]
-#[display("{0} | {1}")]
-pub struct Input(Displays<10>, Displays<4>);
+#[derive(Clone, Debug, FromStr)]
+#[display("{test} | {output}")]
+pub struct Input {
+    test: Digits,
+    output: Digits,
+}
 
-#[derive(Clone, Copy, Debug, Deref)]
-struct Displays<const N: usize>([Display; N]);
+#[derive(Clone, Debug)]
+struct Digits(Vec<Digit>);
 
-impl<const N: usize> FromStr for Displays<N> {
+impl Digits {
+    fn pop(&mut self, select: impl Fn(Digit) -> bool) -> Digit {
+        let pos = self.0.iter().copied().position(select).unwrap();
+        self.0.swap_remove(pos)
+    }
+
+    fn decode(&self, coding: &[Digit]) -> usize {
+        self.0
+            .iter()
+            .filter_map(|d| coding.iter().position(|cd| cd == d))
+            .fold(0_usize, |n, d| n * 10 + d)
+    }
+}
+
+impl FromStr for Digits {
     type Err = Infallible;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Displays(
-            s.split_ascii_whitespace()
-                .flat_map(Display::from_str)
-                .collect::<Vec<_>>()
-                .try_into()
-                .unwrap(),
-        ))
+        Ok(Self(s.split_ascii_whitespace().map(Digit::from).collect()))
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-struct Display([bool; 7]);
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct Digit(u8);
 
-impl Display {
-    fn guess(self) -> Option<u8> {
-        let size = self.0.iter().filter(|x| **x).count();
-        match size {
-            2 => Some(1),
-            3 => Some(7),
-            4 => Some(4),
-            7 => Some(8),
-            _ => None,
-        }
+impl Digit {
+    fn segments_turned_on(self) -> u32 {
+        self.0.count_ones()
     }
 
-    fn guess_for(self, guess: Guess) -> Option<u8> {
-        let mut options = (0..=9).filter(|&n| guess.guess_for(n) == self);
-        let first = options.next()?;
-        match options.next() {
-            Some(_ambiguous) => None,
-            None => Some(first),
-        }
+    fn has_segments(self, n: u32) -> bool {
+        self.segments_turned_on() == n
+    }
+
+    fn contains_segments_from(self, other: Self) -> bool {
+        self.0 & other.0 == other.0
     }
 }
 
-impl FromStr for Display {
-    type Err = Infallible;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self(s.bytes().fold(
-            Default::default(),
-            |mut digits, digit| {
-                digits[usize::from(digit - b'a')] = true;
-                digits
-            },
-        )))
-    }
-}
-
-impl Index<u8> for Display {
-    type Output = bool;
-
-    fn index(&self, index: u8) -> &Self::Output {
-        &self.0[usize::from(index - b'a')]
-    }
-}
-
-impl IndexMut<u8> for Display {
-    fn index_mut(&mut self, index: u8) -> &mut Self::Output {
-        &mut self.0[usize::from(index - b'a')]
-    }
-}
-
-const A: usize = 0;
-const B: usize = 1;
-const C: usize = 2;
-const D: usize = 3;
-const E: usize = 4;
-const F: usize = 5;
-const G: usize = 6;
-
-#[derive(Copy, Clone, Debug)]
-struct Guess([u8; 7]);
-
-impl Guess {
-    fn guess_for(self, n: u8) -> Display {
-        let mut display = Display::default();
-
-        match n {
-            0 => {
-                display[self.0[A]] = true;
-                display[self.0[B]] = true;
-                display[self.0[C]] = true;
-                display[self.0[E]] = true;
-                display[self.0[F]] = true;
-                display[self.0[G]] = true;
-            }
-            1 => {
-                display[self.0[C]] = true;
-                display[self.0[F]] = true;
-            }
-            2 => {
-                display[self.0[A]] = true;
-                display[self.0[C]] = true;
-                display[self.0[D]] = true;
-                display[self.0[E]] = true;
-                display[self.0[G]] = true;
-            }
-            3 => {
-                display[self.0[A]] = true;
-                display[self.0[C]] = true;
-                display[self.0[D]] = true;
-                display[self.0[F]] = true;
-                display[self.0[G]] = true;
-            }
-            4 => {
-                display[self.0[B]] = true;
-                display[self.0[C]] = true;
-                display[self.0[D]] = true;
-                display[self.0[F]] = true;
-            }
-            5 => {
-                display[self.0[A]] = true;
-                display[self.0[B]] = true;
-                display[self.0[D]] = true;
-                display[self.0[F]] = true;
-                display[self.0[G]] = true;
-            }
-            6 => {
-                display[self.0[A]] = true;
-                display[self.0[B]] = true;
-                display[self.0[D]] = true;
-                display[self.0[E]] = true;
-                display[self.0[F]] = true;
-                display[self.0[G]] = true;
-            }
-            7 => {
-                display[self.0[A]] = true;
-                display[self.0[C]] = true;
-                display[self.0[F]] = true;
-            }
-            8 => {
-                display[self.0[A]] = true;
-                display[self.0[B]] = true;
-                display[self.0[C]] = true;
-                display[self.0[D]] = true;
-                display[self.0[E]] = true;
-                display[self.0[F]] = true;
-                display[self.0[G]] = true;
-            }
-            9 => {
-                display[self.0[A]] = true;
-                display[self.0[B]] = true;
-                display[self.0[C]] = true;
-                display[self.0[D]] = true;
-                display[self.0[F]] = true;
-                display[self.0[G]] = true;
-            }
-            _ => {}
-        };
-
-        display
+impl From<&'_ str> for Digit {
+    fn from(s: &'_ str) -> Self {
+        Self(s.bytes().map(|b| b - b'a').fold(0, |n, b| n | (1 << b)))
     }
 }
 
