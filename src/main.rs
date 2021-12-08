@@ -1,5 +1,6 @@
 #![feature(
     array_windows,
+    bool_to_option,
     control_flow_enum,
     drain_filter,
     iter_partition_in_place,
