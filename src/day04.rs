@@ -89,7 +89,7 @@ pub struct Bingo {
 }
 
 impl PuzzleInput for Bingo {
-    type Out = Bingo;
+    type Out = Self;
 
     fn from_input(input: &str) -> Self::Out {
         let mut blocks = input.split("\n\n");
