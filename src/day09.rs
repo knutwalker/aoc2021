@@ -1,5 +1,5 @@
 use aoc2021::{lines, PuzzleInput};
-use derive_more::Deref;
+use derive_more::Add;
 use fxhash::{FxBuildHasher, FxHashSet};
 use std::{cmp::Reverse, collections::VecDeque};
 use tap::Tap;
@@ -12,25 +12,25 @@ register!(
 );
 
 fn part1(hm: &HeightMap) -> u64 {
-    hm.low_points().map(|(_, _, h)| u64::from(h + 1)).sum()
+    hm.low_points().map(|(_, h)| u64::from(h + 1)).sum()
 }
 
 fn part2(hm: &HeightMap) -> u64 {
-    hm.low_points()
-        .map(|(row, col, low)| {
-            std::iter::from_fn({
-                let mut seen = FxHashSet::with_capacity_and_hasher(64, FxBuildHasher::default());
-                let mut queue = VecDeque::with_capacity(64);
-                queue.push_back((row, col));
+    let mut seen = FxHashSet::with_capacity_and_hasher(64, FxBuildHasher::default());
+    let mut queue = VecDeque::with_capacity(64);
 
-                move || loop {
-                    let (r, c) = queue.pop_front()?;
-                    if seen.insert((r, c)) {
-                        queue.extend(hm.neighbors(r, c).filter_map(|(r, c, nh)| {
-                            ((low..9).contains(&nh) && !seen.contains(&(r, c))).then(|| (r, c))
-                        }));
-                        break Some((r, c));
-                    }
+    hm.low_points()
+        .map(|(pos, low)| {
+            seen.clear();
+            queue.clear();
+            queue.push_back(pos);
+            std::iter::from_fn(|| loop {
+                let pos = queue.pop_front()?;
+                if seen.insert(pos) {
+                    queue.extend(hm.neighbors(pos).filter_map(|(pos, nh)| {
+                        ((low..9).contains(&nh) && !seen.contains(&pos)).then(|| pos)
+                    }));
+                    break Some(pos);
                 }
             })
             .count() as _
@@ -42,31 +42,27 @@ fn part2(hm: &HeightMap) -> u64 {
         .product()
 }
 
-#[derive(Clone, Debug, Deref)]
-pub struct HeightMap {
-    rows: usize,
-    cols: usize,
-    #[deref]
-    heights: Vec<Vec<u8>>,
-}
+#[derive(Clone, Debug)]
+pub struct HeightMap(Box<[Box<[u8]>]>);
 
 impl HeightMap {
-    fn iter(&self) -> impl Iterator<Item = (usize, usize, u8)> + '_ {
-        (0..self.rows)
-            .flat_map(move |row| (0..self.cols).map(move |col| (row, col, self[row][col])))
+    #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+    fn low_points(&self) -> impl Iterator<Item = (Pos, u8)> + '_ {
+        self.0.iter().enumerate().flat_map(move |(row, hs)| {
+            hs.iter().enumerate().filter_map(move |(col, &h)| {
+                let pos = Pos(row as _, col as _);
+                self.neighbors(pos).all(|(_, nh)| h < nh).then(|| (pos, h))
+            })
+        })
     }
 
-    fn neighbors(&self, row: usize, col: usize) -> impl Iterator<Item = (usize, usize, u8)> + '_ {
-        let cols = (col.saturating_sub(1)..self.cols.min(col + 2)).map(move |c| (row, c));
-        let rows = (row.saturating_sub(1)..self.rows.min(row + 2)).map(move |r| (r, col));
-        cols.chain(rows)
-            .filter(move |&(r, c)| (r != row || c != col))
-            .map(|(r, c)| (r, c, self[r][c]))
-    }
-
-    fn low_points(&self) -> impl Iterator<Item = (usize, usize, u8)> + '_ {
-        self.iter()
-            .filter(|&(row, col, h)| self.neighbors(row, col).all(|(r, c, nh)| h < nh))
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+    fn neighbors(&self, pos: Pos) -> impl Iterator<Item = (Pos, u8)> + '_ {
+        const NEIGHBORS: [Pos; 4] = [Pos(1, 0), Pos(-1, 0), Pos(0, 1), Pos(0, -1)];
+        NEIGHBORS
+            .iter()
+            .map(move |&d| pos + d)
+            .filter_map(|p @ Pos(r, c)| Some((p, *self.0.get(r as usize)?.get(c as usize)?)))
     }
 }
 
@@ -74,16 +70,22 @@ impl PuzzleInput for HeightMap {
     type Out = Self;
 
     fn from_input(input: &str) -> Self::Out {
-        let heights = lines(input)
-            .map(|line| line.bytes().map(|b| b - b'0').collect::<Vec<_>>())
-            .collect::<Vec<_>>();
-        Self {
-            rows: heights.len(),
-            cols: heights[0].len(),
-            heights,
-        }
+        Self(
+            lines(input)
+                .map(|line| {
+                    line.bytes()
+                        .map(|b| b - b'0')
+                        .collect::<Vec<_>>()
+                        .into_boxed_slice()
+                })
+                .collect::<Vec<_>>()
+                .into_boxed_slice(),
+        )
     }
 }
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Add)]
+struct Pos(i16, i16);
 
 #[cfg(test)]
 mod tests {
