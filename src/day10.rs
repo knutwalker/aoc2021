@@ -3,7 +3,8 @@ use tap::{Pipe, Tap};
 register!(
     "input/day10.txt";
     (input: String) -> u64 {
-        part1(&input), part2(&input)
+        part1(&input);
+        part2(&input);
     }
 );
 

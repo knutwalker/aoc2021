@@ -158,22 +158,22 @@ macro_rules! register {
         }
     };
 
-    ($file:literal; ($input:ident: $input_ty:ty) -> $output_ty:ty { $part1:expr, $part2:expr }) => {
+    ($file:literal; ($input:ident: $input_ty:ty) -> $output_ty:ty { $part1:expr; $part2:expr $(;)? }) => {
         #[rustfmt::skip]
-        register!($file; ($input: verbatim $crate::As<$input_ty>) -> $output_ty { $part1, $part2 });
+        register!($file; ($input: verbatim $crate::As<$input_ty>) -> $output_ty { $part1; $part2 });
     };
 
-    ($file:literal; ($input:ident: parse $input_ty:ty) -> $output_ty:ty { $part1:expr, $part2:expr}) => {
+    ($file:literal; ($input:ident: parse $input_ty:ty) -> $output_ty:ty { $part1:expr; $part2:expr $(;)? }) => {
         #[rustfmt::skip]
-        register!($file; ($input: verbatim $crate::Parsing<$input_ty>) -> $output_ty { $part1, $part2 });
+        register!($file; ($input: verbatim $crate::Parsing<$input_ty>) -> $output_ty { $part1; $part2 });
     };
 
-    ($file:literal; ($input:ident: chunk $input_ty:ty) -> $output_ty:ty { $part1:expr, $part2:expr}) => {
+    ($file:literal; ($input:ident: chunk $input_ty:ty) -> $output_ty:ty { $part1:expr; $part2:expr $(;)? }) => {
         #[rustfmt::skip]
-        register!($file; ($input: verbatim $crate::Blocks<$crate::As<$input_ty>>) -> $output_ty { $part1, $part2 });
+        register!($file; ($input: verbatim $crate::Blocks<$crate::As<$input_ty>>) -> $output_ty { $part1; $part2 });
     };
 
-    ($file:literal; ($input:ident: verbatim $input_ty:ty) -> $output_ty:ty { $part1:expr, $part2:expr }) => {
+    ($file:literal; ($input:ident: verbatim $input_ty:ty) -> $output_ty:ty { $part1:expr; $part2:expr $(;)? }) => {
         pub(crate) struct Solver;
 
         impl $crate::Solution for Solver {

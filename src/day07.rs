@@ -3,7 +3,8 @@ use std::{convert::Infallible, str::FromStr};
 register!(
     "input/day7.txt";
     (input: parse Ferrises) -> u32 {
-        part1(&input[0].0), part2(&input[0].0)
+        part1(&input[0].0);
+        part2(&input[0].0);
     }
 );
 

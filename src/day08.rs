@@ -4,8 +4,8 @@ use std::{convert::Infallible, str::FromStr};
 register!(
     "input/day8.txt";
     (input: parse Input) -> usize {
-        part1(&input),
-        part2(&mut input)
+        part1(&input);
+        part2(&mut input);
     }
 );
 

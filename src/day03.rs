@@ -6,7 +6,8 @@ use tap::Tap;
 register!(
     "input/day3.txt";
     (input: Bits) -> u64 {
-        part1(&input), part2(&mut input)
+        part1(&input);
+        part2(&mut input);
     }
 );
 

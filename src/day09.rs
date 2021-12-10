@@ -7,7 +7,8 @@ use tap::Tap;
 register!(
     "input/day9.txt";
     (input: verbatim HeightMap) -> u64 {
-        part1(&input), part2(&input)
+        part1(&input);
+        part2(&input);
     }
 );
 

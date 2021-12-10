@@ -3,7 +3,8 @@ use std::{convert::Infallible, str::FromStr};
 register!(
     "input/day6.txt";
     (input: parse Fishes) -> usize {
-        part1(&input[0].0), part2(&input[0].0)
+        part1(&input[0].0);
+        part2(&input[0].0);
     }
 );
 

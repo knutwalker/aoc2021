@@ -4,7 +4,8 @@ use derive_more::{Deref, DerefMut};
 register!(
     "input/day4.txt";
     (input: verbatim Bingo) -> u32 {
-        part1(&input.draws, input.boards.clone()), part2(&input.draws, input.boards)
+        part1(&input.draws, input.boards.clone());
+        part2(&input.draws, input.boards);
     }
 );
 
