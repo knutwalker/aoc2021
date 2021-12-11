@@ -3,7 +3,6 @@ use derive_more::Add;
 use disjoint_sets::UnionFind;
 use fxhash::{FxBuildHasher, FxHashMap};
 use std::{cmp::Reverse, ops::AddAssign};
-use tap::Tap;
 
 pub type Wcc = FxHashMap<usize, Basin>;
 
@@ -25,9 +24,10 @@ fn part2(hm: &Wcc) -> u64 {
     hm.values()
         .map(|basin| basin.size)
         .collect::<Vec<_>>()
-        .tap_mut(|sizes| sizes.sort_by_key(|&k| Reverse(k)))
+        .select_nth_unstable_by_key(3, |&k| Reverse(k))
+        .0
         .iter()
-        .take(3)
+        .copied()
         .product()
 }
 

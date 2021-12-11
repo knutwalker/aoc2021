@@ -1,5 +1,24 @@
 use std::{fmt::Debug, fmt::Display, marker::PhantomData, str::FromStr, time::Duration};
 
+pub trait MedianExt<T> {
+    fn median(self) -> T;
+}
+
+impl<'a, T: Ord> MedianExt<&'a T> for &'a mut [T] {
+    #[inline]
+    fn median(self) -> &'a T {
+        let index = self.len() / 2;
+        self.select_nth_unstable(index).1
+    }
+}
+
+impl<T: Ord + Copy> MedianExt<T> for Vec<T> {
+    #[inline]
+    fn median(mut self) -> T {
+        *(self.as_mut_slice().median())
+    }
+}
+
 pub trait PuzzleInput
 where
     Self: Sized,

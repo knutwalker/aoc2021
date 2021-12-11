@@ -1,4 +1,4 @@
-use tap::{Pipe, Tap};
+use aoc2021::MedianExt;
 
 register!(
     "input/day10.txt";
@@ -38,8 +38,7 @@ fn part2(items: &[String]) -> u64 {
                 .fold(0, |total, score| total * 5 + score)
         })
         .collect::<Vec<_>>()
-        .tap_mut(|scores| scores.sort())
-        .pipe(|scores| scores[scores.len() / 2])
+        .median()
 }
 
 fn parse(bytes: impl AsRef<[u8]>) -> Result<String, u8> {
