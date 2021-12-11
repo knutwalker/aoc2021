@@ -1,41 +1,29 @@
 use aoc2021::{lines, PuzzleInput};
 use derive_more::Add;
-use fxhash::{FxBuildHasher, FxHashSet};
-use std::{cmp::Reverse, collections::VecDeque};
+use disjoint_sets::UnionFind;
+use fxhash::{FxBuildHasher, FxHashMap};
+use std::{cmp::Reverse, ops::AddAssign};
 use tap::Tap;
+
+pub type Wcc = FxHashMap<usize, Basin>;
 
 register!(
     "input/day9.txt";
-    (input: verbatim HeightMap) -> u64 {
-        part1(&input);
-        part2(&input);
+    (wcc: verbatim WccInput) -> u64 {
+        part1(&wcc);
+        part2(&wcc);
     }
 );
 
-fn part1(hm: &HeightMap) -> u64 {
-    hm.low_points().map(|(_, h)| u64::from(h + 1)).sum()
+fn part1(hm: &Wcc) -> u64 {
+    hm.values()
+        .map(|basin| u64::from(basin.low_point) + 1)
+        .sum()
 }
 
-fn part2(hm: &HeightMap) -> u64 {
-    let mut seen = FxHashSet::with_capacity_and_hasher(64, FxBuildHasher::default());
-    let mut queue = VecDeque::with_capacity(64);
-
-    hm.low_points()
-        .map(|(pos, low)| {
-            seen.clear();
-            queue.clear();
-            queue.push_back(pos);
-            std::iter::from_fn(|| loop {
-                let pos = queue.pop_front()?;
-                if seen.insert(pos) {
-                    queue.extend(hm.neighbors(pos).filter_map(|(pos, nh)| {
-                        ((low..9).contains(&nh) && !seen.contains(&pos)).then(|| pos)
-                    }));
-                    break Some(pos);
-                }
-            })
-            .count() as _
-        })
+fn part2(hm: &Wcc) -> u64 {
+    hm.values()
+        .map(|basin| basin.size)
         .collect::<Vec<_>>()
         .tap_mut(|sizes| sizes.sort_by_key(|&k| Reverse(k)))
         .iter()
@@ -43,45 +31,80 @@ fn part2(hm: &HeightMap) -> u64 {
         .product()
 }
 
-#[derive(Clone, Debug)]
-pub struct HeightMap(Box<[Box<[u8]>]>);
+#[derive(Clone, Copy, Debug)]
+pub struct Basin {
+    size: u64,
+    low_point: u8,
+}
 
-impl HeightMap {
-    #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
-    fn low_points(&self) -> impl Iterator<Item = (Pos, u8)> + '_ {
-        self.0.iter().enumerate().flat_map(move |(row, hs)| {
-            hs.iter().enumerate().filter_map(move |(col, &h)| {
-                let pos = Pos(row as _, col as _);
-                self.neighbors(pos).all(|(_, nh)| h < nh).then(|| (pos, h))
-            })
-        })
-    }
-
-    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-    fn neighbors(&self, pos: Pos) -> impl Iterator<Item = (Pos, u8)> + '_ {
-        const NEIGHBORS: [Pos; 4] = [Pos(1, 0), Pos(-1, 0), Pos(0, 1), Pos(0, -1)];
-        NEIGHBORS
-            .iter()
-            .map(move |&d| pos + d)
-            .filter_map(|p @ Pos(r, c)| Some((p, *self.0.get(r as usize)?.get(c as usize)?)))
+impl AddAssign<u8> for Basin {
+    fn add_assign(&mut self, rhs: u8) {
+        self.size += 1;
+        if rhs < self.low_point {
+            self.low_point = rhs;
+        }
     }
 }
 
-impl PuzzleInput for HeightMap {
-    type Out = Self;
+impl Default for Basin {
+    fn default() -> Self {
+        Self {
+            size: 0,
+            low_point: u8::MAX,
+        }
+    }
+}
+
+pub struct WccInput;
+
+impl PuzzleInput for WccInput {
+    type Out = Wcc;
 
     fn from_input(input: &str) -> Self::Out {
-        Self(
-            lines(input)
-                .map(|line| {
-                    line.bytes()
-                        .map(|b| b - b'0')
-                        .collect::<Vec<_>>()
-                        .into_boxed_slice()
-                })
-                .collect::<Vec<_>>()
-                .into_boxed_slice(),
-        )
+        let input = lines(input).map(str::as_bytes).collect::<Vec<_>>();
+        let (h, w) = (input.len(), input[0].len());
+        let size = w * h;
+
+        let mut dss = UnionFind::new(size + 1);
+        for (row, current_row) in input.iter().copied().enumerate() {
+            for (col, h) in current_row.iter().map(|b| *b - b'0').enumerate() {
+                let idx = w * row + col;
+                if h == 9 {
+                    // all 9ers are in one community outside of the id range
+                    dss.union(idx, size);
+                    continue;
+                }
+
+                if let Some(pr) = row.checked_sub(1) {
+                    if input[pr][col] - b'0' != 9 {
+                        dss.union(idx, w * pr + col);
+                    }
+                }
+                if let Some(pc) = col.checked_sub(1) {
+                    if current_row[pc] - b'0' != 9 {
+                        dss.union(idx, w * row + pc);
+                    }
+                }
+            }
+        }
+
+        let mut basins = FxHashMap::with_capacity_and_hasher(64, FxBuildHasher::default());
+
+        for idx in 0..size {
+            let root = dss.find(idx);
+            if root == size {
+                // ignore the community of all the 9ers
+                continue;
+            }
+
+            let row = idx / w;
+            let col = idx % w;
+            let h = input[row][col] - b'0';
+
+            *basins.entry(root).or_default() += h;
+        }
+
+        basins
     }
 }
 
