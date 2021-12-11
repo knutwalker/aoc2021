@@ -47,3 +47,9 @@ README.md: README.tpl.md bench.md
 >   @exit 1
 > @fi
 > touch .cargoinstalled
+
+# Download inputs
+
+d%:
+> curl --cookie "session=$$(cat .sessioncookie)" "https://adventofcode.com/2021/day/$*/input" > src/input/day$*.txt;
+> bat src/input/day$*.txt
