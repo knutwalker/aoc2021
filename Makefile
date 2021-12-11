@@ -23,12 +23,22 @@ build: target/release/$(APP)
 clean: .cargoinstalled
 > cargo clean
 
-.PHONY: all build clean
+# update the readme
+readme: README.md
+
+.PHONY: all build clean readme
 
 ### build targets
 
 target/release/$(APP): .cargoinstalled Cargo.toml Cargo.lock $(shell find src -type f)
 > RUSTFLAGS="-C link-arg=-s -C opt-level=3 -C target-cpu=native --emit=asm" cargo build $(CARGOFLAGS) --bin $(APP) --release
+
+bench.md: target/release/$(APP)
+> hyperfine --export-markdown $@ --warmup 5 --runs 50 --parameter-scan day 1 10 --command-name 'day {day}' './$< {day}'
+
+README.md: README.tpl.md bench.md
+> m4 $< > $@
+> markdown-table-formatter $@
 
 .cargoinstalled:
 > @if ! command -v cargo 2> /dev/null
